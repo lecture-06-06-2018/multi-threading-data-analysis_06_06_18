@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="Erik Graf" />
+  <title>Skalierbarkeit durch Multi-Threading in Java</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="TestReveal_files/reveal.js-3.3.0.1/css/reveal.css"/>
+
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+<link rel="stylesheet" href="TestReveal_files/reveal.js-3.3.0.1/css/theme/sky.css" id="theme">
+
+
+  <!-- some tweaks to reveal css -->
+  <style type="text/css">
+    .reveal h1 { font-size: 2.0em; }
+    .reveal h2 { font-size: 1.5em;  }
+    .reveal h3 { font-size: 1.25em;	}
+    .reveal h4 { font-size: 1em;	}
+
+    .reveal .slides>section,
+    .reveal .slides>section>section {
+      padding: 0px 0px;
+    }
+
+
+
+    .reveal table {
+      border-width: 1px;
+      border-spacing: 2px;
+      border-style: dotted;
+      border-color: gray;
+      border-collapse: collapse;
+      font-size: 0.7em;
+    }
+
+    .reveal table th {
+      border-width: 1px;
+      padding-left: 10px;
+      padding-right: 25px;
+      font-weight: bold;
+      border-style: dotted;
+      border-color: gray;
+    }
+
+    .reveal table td {
+      border-width: 1px;
+      padding-left: 10px;
+      padding-right: 25px;
+      border-style: dotted;
+      border-color: gray;
+    }
+
+
+  </style>
+
+    <style type="text/css">code{white-space: pre;}</style>
+
+
+<!-- Printing and PDF exports -->
+<script id="paper-css" type="application/dynamic-css">
+
+/* Default Print Stylesheet Template
+   by Rob Glazebrook of CSSnewbie.com
+   Last Updated: June 4, 2008
+
+   Feel free (nay, compelled) to edit, append, and
+   manipulate this file as you see fit. */
+
+
+@media print {
+
+	/* SECTION 1: Set default width, margin, float, and
+	   background. This prevents elements from extending
+	   beyond the edge of the printed page, and prevents
+	   unnecessary background images from printing */
+	html {
+		background: #fff;
+		width: auto;
+		height: auto;
+		overflow: visible;
+	}
+	body {
+		background: #fff;
+		font-size: 20pt;
+		width: auto;
+		height: auto;
+		border: 0;
+		margin: 0 5%;
+		padding: 0;
+		overflow: visible;
+		float: none !important;
+	}
+
+	/* SECTION 2: Remove any elements not needed in print.
+	   This would include navigation, ads, sidebars, etc. */
+	.nestedarrow,
+	.controls,
+	.fork-reveal,
+	.share-reveal,
+	.state-background,
+	.reveal .progress,
+	.reveal .backgrounds {
+		display: none !important;
+	}
+
+	/* SECTION 3: Set body font face, size, and color.
+	   Consider using a serif font for readability. */
+	body, p, td, li, div {
+		font-size: 20pt!important;
+		font-family: Georgia, "Times New Roman", Times, serif !important;
+		color: #000;
+	}
+
+	/* SECTION 4: Set heading font face, sizes, and color.
+	   Differentiate your headings from your body text.
+	   Perhaps use a large sans-serif for distinction. */
+	h1,h2,h3,h4,h5,h6 {
+		color: #000!important;
+		height: auto;
+		line-height: normal;
+		font-family: Georgia, "Times New Roman", Times, serif !important;
+		text-shadow: 0 0 0 #000 !important;
+		text-align: left;
+		letter-spacing: normal;
+	}
+	/* Need to reduce the size of the fonts for printing */
+	h1 { font-size: 28pt !important;  }
+	h2 { font-size: 24pt !important; }
+	h3 { font-size: 22pt !important; }
+	h4 { font-size: 22pt !important; font-variant: small-caps; }
+	h5 { font-size: 21pt !important; }
+	h6 { font-size: 20pt !important; font-style: italic; }
+
+	/* SECTION 5: Make hyperlinks more usable.
+	   Ensure links are underlined, and consider appending
+	   the URL to the end of the link for usability. */
+	a:link,
+	a:visited {
+		color: #000 !important;
+		font-weight: bold;
+		text-decoration: underline;
+	}
+	/*
+	.reveal a:link:after,
+	.reveal a:visited:after {
+		content: " (" attr(href) ") ";
+		color: #222 !important;
+		font-size: 90%;
+	}
+	*/
+
+
+	/* SECTION 6: more reveal.js specific additions by @skypanther */
+	ul, ol, div, p {
+		visibility: visible;
+		position: static;
+		width: auto;
+		height: auto;
+		display: block;
+		overflow: visible;
+		margin: 0;
+		text-align: left !important;
+	}
+	.reveal pre,
+	.reveal table {
+		margin-left: 0;
+		margin-right: 0;
+	}
+	.reveal pre code {
+		padding: 20px;
+		border: 1px solid #ddd;
+	}
+	.reveal blockquote {
+		margin: 20px 0;
+	}
+	.reveal .slides {
+		position: static !important;
+		width: auto !important;
+		height: auto !important;
+
+		left: 0 !important;
+		top: 0 !important;
+		margin-left: 0 !important;
+		margin-top: 0 !important;
+		padding: 0 !important;
+		zoom: 1 !important;
+
+		overflow: visible !important;
+		display: block !important;
+
+		text-align: left !important;
+		-webkit-perspective: none;
+		   -moz-perspective: none;
+		    -ms-perspective: none;
+		        perspective: none;
+
+		-webkit-perspective-origin: 50% 50%;
+		   -moz-perspective-origin: 50% 50%;
+		    -ms-perspective-origin: 50% 50%;
+		        perspective-origin: 50% 50%;
+	}
+	.reveal .slides section {
+		visibility: visible !important;
+		position: static !important;
+		width: auto !important;
+		height: auto !important;
+		display: block !important;
+		overflow: visible !important;
+
+		left: 0 !important;
+		top: 0 !important;
+		margin-left: 0 !important;
+		margin-top: 0 !important;
+		padding: 60px 20px !important;
+		z-index: auto !important;
+
+		opacity: 1 !important;
+
+		page-break-after: always !important;
+
+		-webkit-transform-style: flat !important;
+		   -moz-transform-style: flat !important;
+		    -ms-transform-style: flat !important;
+		        transform-style: flat !important;
+
+		-webkit-transform: none !important;
+		   -moz-transform: none !important;
+		    -ms-transform: none !important;
+		        transform: none !important;
+
+		-webkit-transition: none !important;
+		   -moz-transition: none !important;
+		    -ms-transition: none !important;
+		        transition: none !important;
+	}
+	.reveal .slides section.stack {
+		padding: 0 !important;
+	}
+	.reveal section:last-of-type {
+		page-break-after: avoid !important;
+	}
+	.reveal section .fragment {
+		opacity: 1 !important;
+		visibility: visible !important;
+
+		-webkit-transform: none !important;
+		   -moz-transform: none !important;
+		    -ms-transform: none !important;
+		        transform: none !important;
+	}
+	.reveal section img {
+		display: block;
+		margin: 15px 0px;
+		background: rgba(255,255,255,1);
+		border: 1px solid #666;
+		box-shadow: none;
+	}
+
+	.reveal section small {
+		font-size: 0.8em;
+	}
+
+}  
+</script>
+
+
+<script id="pdf-css" type="application/dynamic-css">
+    
+/**
+ * This stylesheet is used to print reveal.js
+ * presentations to PDF.
+ *
+ * https://github.com/hakimel/reveal.js#pdf-export
+ */
+
+* {
+	-webkit-print-color-adjust: exact;
+}
+
+body {
+	margin: 0 auto !important;
+	border: 0;
+	padding: 0;
+	float: none !important;
+	overflow: visible;
+}
+
+html {
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+
+/* Remove any elements not needed in print. */
+.nestedarrow,
+.reveal .controls,
+.reveal .progress,
+.reveal .playback,
+.reveal.overview,
+.fork-reveal,
+.share-reveal,
+.state-background {
+	display: none !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	text-shadow: 0 0 0 #000 !important;
+}
+
+.reveal pre code {
+	overflow: hidden !important;
+	font-family: Courier, 'Courier New', monospace !important;
+}
+
+ul, ol, div, p {
+	visibility: visible;
+	position: static;
+	width: auto;
+	height: auto;
+	display: block;
+	overflow: visible;
+	margin: auto;
+}
+.reveal {
+	width: auto !important;
+	height: auto !important;
+	overflow: hidden !important;
+}
+.reveal .slides {
+	position: static;
+	width: 100%;
+	height: auto;
+
+	left: auto;
+	top: auto;
+	margin: 0 !important;
+	padding: 0 !important;
+
+	overflow: visible;
+	display: block;
+
+	-webkit-perspective: none;
+	   -moz-perspective: none;
+	    -ms-perspective: none;
+	        perspective: none;
+
+	-webkit-perspective-origin: 50% 50%; /* there isn't a none/auto value but 50-50 is the default */
+	   -moz-perspective-origin: 50% 50%;
+	    -ms-perspective-origin: 50% 50%;
+	        perspective-origin: 50% 50%;
+}
+
+.reveal .slides section {
+	page-break-after: always !important;
+
+	visibility: visible !important;
+	position: relative !important;
+	display: block !important;
+	position: relative !important;
+
+	margin: 0 !important;
+	padding: 0 !important;
+	box-sizing: border-box !important;
+	min-height: 1px;
+
+	opacity: 1 !important;
+
+	-webkit-transform-style: flat !important;
+	   -moz-transform-style: flat !important;
+	    -ms-transform-style: flat !important;
+	        transform-style: flat !important;
+
+	-webkit-transform: none !important;
+	   -moz-transform: none !important;
+	    -ms-transform: none !important;
+	        transform: none !important;
+}
+
+.reveal section.stack {
+	margin: 0 !important;
+	padding: 0 !important;
+	page-break-after: avoid !important;
+	height: auto !important;
+	min-height: auto !important;
+}
+
+.reveal img {
+	box-shadow: none;
+}
+
+.reveal .roll {
+	overflow: visible;
+	line-height: 1em;
+}
+
+/* Slide backgrounds are placed inside of their slide when exporting to PDF */
+.reveal section .slide-background {
+	display: block !important;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	z-index: -1;
+}
+
+/* All elements should be above the slide-background */
+.reveal section>* {
+	position: relative;
+	z-index: 1;
+}
+
+/* Display slide speaker notes when 'showNotes' is enabled */
+.reveal .speaker-notes-pdf {
+	display: block;
+	width: 100%;
+	max-height: none;
+	left: auto;
+	top: auto;
+	z-index: 100;
+}
+
+/* Display slide numbers when 'slideNumber' is enabled */
+.reveal .slide-number-pdf {
+	display: block;
+	position: absolute;
+	font-size: 14px;
+}
+
+</script>
+
+
+<script>
+var style = document.createElement( 'style' );
+style.type = 'text/css';
+var style_script_id = window.location.search.match( /print-pdf/gi ) ? 'pdf-css' : 'paper-css';
+var style_script = document.getElementById(style_script_id).text;
+style.innerHTML = style_script;
+document.getElementsByTagName('head')[0].appendChild(style);
+</script>
+
+    <link href="TestReveal_files/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section>
+    <h1 class="title">Skalierbarkeit durch Multi-Threading in Java</h1>
+  <h1 class="subtitle">Anwendungsfall Datenanalyse</h1>
+    <h2 class="author">Erik Graf</h2>
+    <h3 class="date">June 6, 2018</h3>
+</section>
+
+<section id="dummy-slide" class="slide level2">
+<h2>dummy slide</h2>
+<!--javascript to remove dummy slide-->
+<script>document.getElementById("dummy-slide").remove();</script>
+<!--end dummy slide-->
+</section>
+<section>
+<section class="titleslide slide level1">
+<h1>
+Parallelisierung
+</h1>
+<p>Definition:</p>
+<ul>
+<li>Simultane Ausführung von Berechnungen</li>
+<li>Grundprinzip ist die Unterteilung von Aufgaben</li>
+</ul>
+<!--"Everybody who learns concurrency thinks they understand it, ends up finding mysterious races they thought weren’t possible, and discovers that they didn’t actually understand it yet after all." Herb Sutter, chair of the ISO C++ standards committee, Microsoft.
+
+
+"Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it." Brian Kernighan, professor at Princeton University.
+-->
+<ul>
+<li class="fragment"><img src="structuredParallelProgramming.png" alt="Source: Structured Parallel Programming p. 6" /></li>
+<li class="fragment">Source: Structured Parallel Programming p. 6</li>
+</ul>
+</section>
+<section id="batch-analyse" class="slide level2">
+<h2>Batch Analyse</h2>
+<p>Parallelisierung um die Verarbeitung von grösseren Datenmengen zu ermöglichen.</p>
+<p><img src="BatchMotivation.png" alt="Skalieren über Daten" style="width:40.0%" /></p>
+<p>Stichwort: Big Data (strukturierte und unstrukturierte Daten)</p>
+</section>
+<section id="antwortzeit-von-abfragen" class="slide level2">
+<h2>Antwortzeit von Abfragen</h2>
+<p>Parallesierung mit dem Ziel die Antwortzeit (Latenz) eines Systems zu verkürzen.</p>
+<p><img src="LatenzMotivation.png" alt="Skalieren über Funktionalität" style="width:40.0%" /></p>
+<p>Anwendungen (?):</p>
+<ul>
+<li class="fragment">Suchen, Expertensysteme</li>
+<li class="fragment">Analysen mit Parametern</li>
+</ul>
+</section>
+</section>
+<section>
+<section class="titleslide slide level1">
+<h1>
+Skalierung
+</h1>
+<p>Skalierung über:</p>
+<ul>
+<li>grosse Mengen an Daten</li>
+<li>grosse Anzahl von Nutzern</li>
+<li>variable Anfragefrequenz</li>
+</ul>
+</section>
+<section id="daten-skalierung" class="slide level2">
+<h2>Daten Skalierung</h2>
+<ul>
+<li>Text (Web, Enterprise)</li>
+<li>Sensor (Herstellung, Maschinen, Fahrzeuge)</li>
+<li>Medizinische Daten (Patientendaten, Ally Science)</li>
+<li>Bilddaten (Satellitendaten, Drohnen)</li>
+</ul>
+<p>Grosse Mengen nützlicher Informationen in Daten enthalten.</p>
+</section>
+<section id="nutzer-skalierung" class="slide level2">
+<h2>Nutzer Skalierung</h2>
+<ul>
+<li>Enterprise (Unterstützung von Analysten und Support)</li>
+<li>Verkauf (Analyse von Online-Shopping)</li>
+<li>Endnutzer (Analyse Nutzerverhalten)</li>
+<li>Maschinelles Lernen als Service (Siri, Alexa)</li>
+</ul>
+<p>Wachsende Anzahl an Nutzergruppen die von Datenanalyse profitieren.</p>
+</section>
+<section id="variable-anfragefrequenz" class="slide level2">
+<h2>Variable Anfragefrequenz</h2>
+<p><img src="CommitFreq.png" alt="Commit Frequenz" /></p>
+</section>
+</section>
+<section>
+<section class="titleslide slide level1">
+<h1>
+Ansätze zur Parallelisierung
+</h1>
+</section>
+<section id="zerlegung-decomposition" class="slide level2">
+<h2>Zerlegung [Decomposition]</h2>
+<p>Zerlegung der Aufgabe [Task] in einzelne Teil-Aufgaben und / oder Partitionierung der Daten.</p>
+<ol type="1">
+<li class="fragment">Einzelne Arbeitsschritte erfassen: Was muss getan werden?</li>
+<li class="fragment">Daten erfassen: Welche Daten und wie “sehen” sie aus?</li>
+<li class="fragment">Arbeitsschritte in Aufgaben zusammenfassen</li>
+<li class="fragment">Partitionierung von Daten festlegen</li>
+</ol>
+</section>
+<section id="zerlegung-unterteilung-in-tasks" class="slide level2">
+<h2>Zerlegung: Unterteilung in Tasks</h2>
+<ul>
+<li>Default: Alle Arbeitsschritte als einen Task definieren</li>
+</ul>
+<p><img src="Tasks.png" alt="Task Analyse" /></p>
+<ul>
+<li>Oftmals keine eindeutige Lösung</li>
+</ul>
+</section>
+<section id="zerlegung-daten-partitionierung" class="slide level2">
+<h2>Zerlegung: Daten Partitionierung</h2>
+<p><img src="DataPartitioning.png" alt="Daten Partitionierung" style="width:60.0%" /></p>
+<ul>
+<li>Dokumente versus Berechnungen</li>
+<li>Integer Intervalle zur Berechnung von Primzahlen</li>
+<li>Faire / gleichmässige Verteilung ?</li>
+</ul>
+</section>
+<section id="abhangigkeiten" class="slide level2">
+<h2>Abhängigkeiten</h2>
+<p>Stichworte: Abstimmung (Synchronisierung von Abläufen), Kommunikation</p>
+<ol type="1">
+<li>Ist Kommunikation zwischen Threads nötig um einen Task zu lösen?</li>
+<li>Sind Tasks abhängig von der Verfügbarkeit der Ergebnisse früherer Tasks?</li>
+</ol>
+</section>
+<section id="abhangigkeiten-1" class="slide level2">
+<h2>Abhängigkeiten ?</h2>
+<p>Task: Transformation von Bildern.</p>
+<p><img src="Image.png" alt="Bild Transformation" style="width:35.0%" /></p>
+<ul>
+<li class="fragment">Keine Abhängigkeiten (embarrassingly parallel, perfectly parallel)</li>
+<li class="fragment">350+ Millionen Fotos pro Tag (2013) <a href="https://www.facebook.com/notes/facebook/facebook-photos-infrastructure/2406207130">Facebook</a></li>
+</ul>
+</section>
+<section id="abhangigkeiten-2" class="slide level2">
+<h2>Abhängigkeiten</h2>
+<ul>
+<li>Shared State, interleave</li>
+<li>Lesen, Schreiben, Löschen</li>
+</ul>
+<p>Präferenz aus Sicht der Parallelisierung:</p>
+<ol type="1">
+<li class="fragment">Lesen ohne Veränderung [Immutable]</li>
+<li class="fragment">Lesen mit Veränderung [Mutable]</li>
+<li class="fragment">Schreiben, Löschen</li>
+</ol>
+<p>Toolbox:</p>
+<ul>
+<li class="fragment">synchronized methods</li>
+<li class="fragment">wait, notifyAll methods of class Object</li>
+</ul>
+</section>
+<section id="design-der-parallelisierung" class="slide level2">
+<h2>Design der Parallelisierung</h2>
+<ul>
+<li>Input: Tasks, Daten, Threads</li>
+<li>Aufgabe: Verteilung der Tasks und Daten auf Threads</li>
+</ul>
+</section>
+<section id="design-der-parallelisierung-1" class="slide level2">
+<h2>Design der Parallelisierung</h2>
+<p><img src="TasksDataThreads.png" alt="Beziehung zwischen Daten, Tasks und Threads" style="width:65.0%" /></p>
+<p>Beispiele: Image Transformation, Count prime numbers in range</p>
+</section>
+<section id="rezept-fur-parallelisierung" class="slide level2">
+<h2>Rezept für Parallelisierung</h2>
+<ol type="1">
+<li class="fragment">Task Analyse (Was muss getan werden?)</li>
+<li class="fragment">Daten Partitionierung (Wie lassen sich die Daten verteilen?)</li>
+<li class="fragment">Analyse der Abhängigkeiten (Kommunikation, Synchronisation notwendig? Geht es ohne?)</li>
+<li class="fragment">Design Parallelisierung (Verteilung von Tasks und Daten auf Threads)</li>
+</ol>
+<!--
+## Performanz
+
+Thread Pools
+Fixed Thread Pools
+Char Parallelisation
+Calculation between
+task length, amdahls law
+
+!!! Abwägung zwischen Nachvollziehbarkeit, Komplexität
+-->
+</section>
+</section>
+<section>
+<section class="titleslide slide level1">
+<h1>
+Fallbeispiel: Contract Intelligence
+</h1>
+<ul>
+<li>Verarbeitung von Verträgen sehr häufig bei Banken</li>
+<li>Z.b. Einpflegen des Inhalts der Verträge in Systeme</li>
+<li>Aufgabe wird oft vollständig manuell verrrichtet</li>
+<li>Grosses Interesse der Banken in Bezug auf Automatisierung</li>
+</ul>
+</section>
+<section id="credit-agreement" class="slide level2">
+<h2>Credit Agreement</h2>
+<p><img src="CreditAgreementSmall.png" alt="Commit Frequenz" /></p>
+</section>
+<section id="aufgabenstellungen" class="slide level2">
+<h2>Aufgabenstellungen</h2>
+<ul>
+<li>Extraktion und Einpflegen von Werten
+<ul>
+<li>Datum der Gültigkeit, Datum des Verfalls</li>
+<li>Präsenz bestimmter Klauseln und Bedingungen</li>
+</ul></li>
+<li>Suche in Verträgen</li>
+<li>Vertragslänge 100-800 Seiten</li>
+</ul>
+<p>Anwendung von Datenanalyse zur Effizienzsteigerung.</p>
+<!-- ## Maschinelles Lernen in Phasen
+
+
+![Phasen maschinellen Lernens](./PhasenImMachineLearning.png)
+
+-->
+</section>
+<section id="erlernen-der-ahnlichkeit-von-konzepten" class="slide level2">
+<h2>Erlernen der Ähnlichkeit von Konzepten</h2>
+<ul>
+<li>Automatisches Erlernen von Synonymen (Suche)</li>
+<li>Ähnlichkeit und Beziehungen zwischen Konzepten erkennen</li>
+</ul>
+</section>
+<section id="erlernen-der-ahnlichkeit-von-konzepten-1" class="slide level2">
+<h2>Erlernen der Ähnlichkeit von Konzepten</h2>
+<blockquote>
+<p>You shall know a word by the company it keeps (Firth, John R. 1957)</p>
+</blockquote>
+<p>Lernen basierend auf Verteilung von Wörtern:</p>
+<ul>
+<li>Gemeinsames Vorkommen [co-occurrence]</li>
+<li>Kontext: Dokument, Paragraph, Satz</li>
+</ul>
+</section>
+<section id="erlernen-der-ahnlichkeit-von-konzepten-2" class="slide level2">
+<h2>Erlernen der Ähnlichkeit von Konzepten</h2>
+<p>Berechnung der Ähnlichkeit:</p>
+<ul>
+<li>Pointwise Mutual Information (PMI)</li>
+<li>Gewichtet das gemeinsame Vorkommen von Wörtern</li>
+<li>Der, die, das kommen sehr häufig mit anderen Wörtern vor.</li>
+</ul>
+</section>
+<section id="erlernen-der-ahnlichkeit-von-konzepten-3" class="slide level2">
+<h2>Erlernen der Ähnlichkeit von Konzepten</h2>
+<p>Pointwise Mutual Information (PMI)</p>
+<p><span class="math display">\[
+ log_{2}\frac{\frac{count(xy)}{countAll}}{\frac{count(x) x count(y)}{countAll}}
+ \]</span></p>
+<p>Wir benötigen: count(xy), countAll, count(x), count(y)</p>
+</section>
+</section>
+<section>
+<section class="titleslide slide level1">
+<h1>
+Umsetzung
+</h1>
+</section>
+<section id="arbeitsschritte-identifizieren" class="slide level2">
+<h2>Arbeitsschritte identifizieren</h2>
+<p>Ausgangspunkt: Satz von “Credit Agreement”s in Form von HTML Files (Source: sec.gov)</p>
+<ol type="1">
+<li class="fragment">HTML Files laden</li>
+<li class="fragment">Text extrahieren</li>
+<li class="fragment">Text in Wörter zerteilen [Tokenisation]</li>
+<li class="fragment">Zählen der Ereignisse</li>
+<li class="fragment">Berechnung PMI basierend auf Zählungen von <strong>allen</strong> Dokumenten</li>
+</ol>
+</section>
+<section id="tasks-definieren" class="slide level2">
+<h2>Tasks definieren</h2>
+<p>Einfach starten : Arbeitsschritte 1-4 stellen einen Task dar</p>
+</section>
+<section id="daten-partitionieren" class="slide level2">
+<h2>Daten Partitionieren</h2>
+<p>(?)</p>
+</section>
+<section id="design-parallelisierung" class="slide level2">
+<h2>Design Parallelisierung</h2>
+<p>(?)</p>
+</section>
+<section id="umsetzung-in-code" class="slide level2">
+<h2>Umsetzung in Code (?)</h2>
+</section>
+<section id="umsetzung-in-code-1" class="slide level2">
+<h2>Umsetzung in Code</h2>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> DocumentProcessor <span class="kw">implements</span> <span class="bu">Runnable</span> {
+
+  <span class="kw">private</span> <span class="bu">File</span> document;
+  <span class="kw">private</span> InMemFreqCounts freqCounts;
+
+  <span class="kw">public</span> <span class="fu">DocumentProcessor</span>(<span class="bu">File</span> document, InMemFreqCounts freqCts) {
+    <span class="kw">this</span>.<span class="fu">document</span> = document;
+    <span class="kw">this</span>.<span class="fu">freqCounts</span> = freqCts;
+  }
+
+  <span class="kw">public</span> <span class="dt">void</span> <span class="fu">run</span>() {
+    <span class="bu">String</span> fileContent = <span class="fu">getFileContent</span>(document);
+    <span class="bu">String</span> documentText = <span class="fu">extractText</span>(fileContent);
+    <span class="bu">List</span>&lt;<span class="bu">String</span>&gt; documentTokens = <span class="fu">getTokens</span>(documentText);
+    freqCounts.<span class="fu">addObservations</span>(documentTokens, <span class="kw">false</span>);
+}
+...</code></pre></div>
+</section>
+<section id="thread-klasse" class="slide level2">
+<h2>Thread Klasse</h2>
+<p>Alle Dokumente müssen verarbeitet sein bevor wir die Ähnlichkeiten berechnen.</p>
+<ul>
+<li>Warten auf alle Threads?</li>
+<li>Skalierung zu N Dokumenten bedeutet N Threads?</li>
+</ul>
+</section>
+<section id="executorservice" class="slide level2">
+<h2>ExecutorService</h2>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="kw">public</span> <span class="kw">class</span> RunAssociationLearning {
+    
+  <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[] args) 
+    <span class="kw">throws</span> <span class="bu">IOException</span>, <span class="bu">ClassNotFoundException</span> {
+      
+    InMemFreqCounts freqCounts = <span class="kw">new</span> <span class="fu">InMemFreqCounts</span>();
+    <span class="bu">ExecutorService</span> executor = <span class="bu">Executors</span>.<span class="fu">newFixedThreadPool</span>(<span class="dv">20</span>);
+    <span class="bu">File</span>[] files = <span class="fu">getFiles</span>(<span class="kw">new</span> <span class="bu">File</span>(<span class="st">&quot;./src/main/resources/html&quot;</span>));
+    <span class="kw">for</span> (<span class="bu">File</span> file : files) {
+        executor.<span class="fu">execute</span>(<span class="kw">new</span> <span class="fu">DocumentProcessor</span>(file, freqCounts));
+    }
+
+    executor.<span class="fu">shutdown</span>();
+    <span class="kw">try</span> {
+      executor.<span class="fu">awaitTermination</span>(<span class="dv">1000</span>, <span class="bu">TimeUnit</span>.<span class="fu">SECONDS</span>);
+    } <span class="kw">catch</span> (<span class="bu">InterruptedException</span> ex) { <span class="kw">... </span>}</code></pre></div>
+<ul>
+<li>Executors.newFixedThreadPool</li>
+<li>Executors.newCachedThreadPool</li>
+<li>Executors.newSingleThreadExecutor</li>
+</ul>
+</section>
+<section id="ergebnisse" class="slide level2">
+<h2>Ergebnisse</h2>
+<p>Synonyme Credit Agreements</p>
+<table>
+<thead>
+<tr class="header">
+<th>maturity-date</th>
+<th>termination-date</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>term-loan-maturity-date</td>
+<td>revolving-termination-date</td>
+</tr>
+<tr class="even">
+<td>stated-maturity-date</td>
+<td>commitment-termination-date</td>
+</tr>
+<tr class="odd">
+<td>revolving-credit-maturity-date</td>
+<td>maturity-date</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="optimierung-i" class="slide level2">
+<h2>Optimierung I</h2>
+<p>Ideen zur Optimierung?</p>
+<p>Wie stellen wir sicher dass richtig gezählt wird (Shared Object)?</p>
+</section>
+<section id="synchronisierung" class="slide level2">
+<h2>Synchronisierung</h2>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="co">/**</span>
+<span class="co">*</span> Add observations of tokenized terms seen in a context<span class="co">.</span>
+<span class="co">*</span>
+<span class="co">*</span> <span class="kw">@param terms </span>the tokenised terms
+<span class="co">*/</span>
+<span class="kw">public</span> <span class="kw">synchronized</span> <span class="dt">void</span> <span class="fu">addObservations</span>(<span class="bu">List</span>&lt;<span class="bu">String</span>&gt; terms) {
+  <span class="fu">updateDFCounts</span>(terms);
+  <span class="fu">updateCoOcCounts</span>(terms);
+}</code></pre></div>
+<p>Was sind potentielle Nachteile dieses Vorgehens?</p>
+</section>
+<section id="concurrent-collections-atomic" class="slide level2">
+<h2>Concurrent Collections, Atomic</h2>
+<p>Alternative zur Nutzung von <strong>synchronized</strong></p>
+<div class="sourceCode"><pre class="sourceCode java"><code class="sourceCode java"><span class="co">/**</span>
+<span class="co">*</span> Constructor initialises all count storage<span class="co">.</span>
+<span class="co">*/</span>
+<span class="kw">public</span> <span class="fu">InMemFreqCounts</span>() {
+  coOccMap = <span class="kw">new</span> <span class="bu">ConcurrentHashMap</span>&lt;<span class="bu">Long</span>, <span class="bu">Integer</span>&gt;();
+  totalContextsSeen = <span class="kw">new</span> <span class="bu">AtomicInteger</span>(); 
+}</code></pre></div>
+<p>Vorteile:</p>
+<ul>
+<li>Geschwindigkeit</li>
+<li>Fehleranfälligkeit</li>
+</ul>
+<p>Packages:</p>
+<ul>
+<li>java.util.concurrent.atomic</li>
+<li>java.util.concurrent für Collection classes</li>
+</ul>
+</section>
+<section id="ergebnisse-ii" class="slide level2">
+<h2>Ergebnisse II</h2>
+<p>Crawled 2831 HTML Seiten auf der sub-domain ti.bfh.ch.</p>
+<table>
+<thead>
+<tr class="header">
+<th>it-services</th>
+<th>PMI Score</th>
+<th>3d-druck</th>
+<th>PMI Score</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>it-infrastruktur</td>
+<td>197.7</td>
+<td>bfh-hkb</td>
+<td>191.7</td>
+</tr>
+<tr class="even">
+<td>informatikdienste</td>
+<td>194.6</td>
+<td>wachs</td>
+<td>189.7</td>
+</tr>
+<tr class="odd">
+<td>professionellen</td>
+<td>185.4</td>
+<td>beschichtungen</td>
+<td>181.7</td>
+</tr>
+<tr class="even">
+<td>betreiben</td>
+<td>178.4</td>
+<td>formteilen</td>
+<td>171.7</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section class="slide level2">
+
+<p>Ohne Filterung nach Sprache.</p>
+<table>
+<thead>
+<tr class="header">
+<th>room</th>
+<th>PMI Score</th>
+<th>(debian)</th>
+<th>PMI Score</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>clean</td>
+<td>200.0</td>
+<td>apache/2</td>
+<td>198.0</td>
+</tr>
+<tr class="even">
+<td>devices</td>
+<td>182.0</td>
+<td>url</td>
+<td>197.2</td>
+</tr>
+<tr class="odd">
+<td>efficiency</td>
+<td>173.7</td>
+<td>443</td>
+<td>182.5</td>
+</tr>
+<tr class="even">
+<td>production</td>
+<td>166.8</td>
+<td>port</td>
+<td>176.7</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>automne</th>
+<th>PMI Score</th>
+<th>génie</th>
+<th>PMI Score</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>série</td>
+<td>189.7</td>
+<td>électrique</td>
+<td>190.1 7</td>
+</tr>
+<tr class="even">
+<td>l’année</td>
+<td>187.0</td>
+<td>techniques</td>
+<td>172.3</td>
+</tr>
+<tr class="odd">
+<td>présente</td>
+<td>183.3</td>
+<td>dans</td>
+<td>156.9</td>
+</tr>
+<tr class="even">
+<td>année</td>
+<td>182.7</td>
+<td>un</td>
+<td>156.1</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="optimierung-ii" class="slide level2">
+<h2>Optimierung II</h2>
+<ul>
+<li>Bottlenecks
+<ul>
+<li>Hardware-Abhängigkeiten (IO, Network)</li>
+<li>Synchronisierung</li>
+</ul></li>
+<li>Abstimmung wenn Tasks über mehrere Threadpools verteilt werden</li>
+<li>Komplexität des Systems
+<ul>
+<li>Nachvollziehbarkeit von Vorteil</li>
+<li>Externe Abhängigkeiten (Libraries, Team, Kundensysteme)</li>
+</ul></li>
+</ul>
+</section>
+<section id="anregungen" class="slide level2">
+<h2>Anregungen</h2>
+<blockquote>
+<p>“Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it.” Brian Kernighan, professor at Princeton University</p>
+</blockquote>
+<blockquote>
+<p>“Everybody who learns concurrency thinks they understand it, ends up finding mysterious races they thought weren’t possible, and discovers that they didn’t actually understand it yet after all.” Herb Sutter, chair of the ISO C++ standards committee, Microsoft.</p>
+</blockquote>
+</section>
+    </div>
+  </div>
+
+  <script src="TestReveal_files/reveal.js-3.3.0.1/lib/js/head.min.js"></script>
+  <script src="TestReveal_files/reveal.js-3.3.0.1/js/reveal.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        // Push each slide change to the browser history
+        history: true,
+        // Vertical centering of slides
+        center: false,
+        // Transition style
+        transition: 'default', // none/fade/slide/convex/concave/zoom
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'default', // none/fade/slide/convex/concave/zoom
+
+
+
+        chalkboard: {
+        },
+
+        keyboard: {
+          67: function() { RevealChalkboard.toggleNotesCanvas() },    // toggle notes canvas when 'c' is pressed
+          66: function() { RevealChalkboard.toggleChalkboard() }, // toggle chalkboard when 'b' is pressed
+          46: function() { RevealChalkboard.clear() },    // clear chalkboard when 'DEL' is pressed
+           8: function() { RevealChalkboard.reset() },    // reset chalkboard data on current slide when 'BACKSPACE' is pressed
+          68: function() { RevealChalkboard.download() }, // downlad recorded chalkboard drawing when 'd' is pressed
+        },
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'TestReveal_files/reveal.js-3.3.0.1/plugin/chalkboard/chalkboard.js', async: true },
+        ]
+      });
+    </script>
+  <!-- dynamically load mathjax for compatibility with self-contained -->
+  <script>
+    (function () {
+      var script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+      document.getElementsByTagName("head")[0].appendChild(script);
+    })();
+  </script>
+
+<script>
+  (function() {
+    if (window.jQuery) {
+      Reveal.addEventListener( 'slidechanged', function(event) {  
+        window.jQuery(event.previousSlide).trigger('hidden');
+        window.jQuery(event.currentSlide).trigger('shown');
+      });
+    }
+  })();
+</script>
+
+
+  </body>
+</html>
